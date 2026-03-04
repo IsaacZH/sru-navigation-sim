@@ -622,7 +622,7 @@ class RobotNavigationGoalCommand(CommandTerm):
     def reset(self, env_ids: Sequence[int] | None = None) -> dict[str, float]:
         """Reset command generator and compute episode metrics."""
         metrics_obs = self.env.observation_manager.compute_group(group_name="metrics")
-        success = metrics_obs["in_goal"][env_ids]
+        success = metrics_obs["in_goal"][env_ids].squeeze(-1)
         failed = ~success
 
         # Update legacy success rate buffer
