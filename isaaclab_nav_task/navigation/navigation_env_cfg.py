@@ -437,6 +437,7 @@ class NavigationEnvCfg(ManagerBasedRLEnvCfg):
             self.scene.raycast_camera.update_period = self.decimation * self.sim.dt
         if self.scene.contact_forces is not None:
             self.scene.contact_forces.update_period = self.sim.dt
+            self.scene.contact_forces.history_length = self.decimation
 
         # Terrain curriculum settings
         self.scene.terrain.max_init_terrain_level = 10
