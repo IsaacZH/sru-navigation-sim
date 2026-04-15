@@ -25,8 +25,11 @@ class PerceptiveNavigationSE2ActionCfg(ActionTermCfg):
     """Scale for the actions [vx, vy, w]."""
     offset: list[float] = [0.0, 0.0, 0.0]
     """Offset for the actions [vx, vy, w]."""
-    low_level_velocity_action: ActionTermCfg = MISSING
-    """Configuration of the low level velocity action term."""
+    low_level_velocity_action: ActionTermCfg | None = MISSING
+    """Configuration of the low level velocity action term.
+
+    Set to None when the low-level policy only outputs one action branch (e.g. position-only control).
+    """
     low_level_position_action: ActionTermCfg = MISSING
     """Configuration of the low level position action term."""
     low_level_policy_file: str = MISSING

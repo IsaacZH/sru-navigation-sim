@@ -92,7 +92,7 @@ class UnitreeUrdfFileCfg(sim_utils.UrdfFileCfg):
 
 """ Configuration for the Unitree robots."""
 
-UNITREE_GO2_CFG = UnitreeArticulationCfg(
+GO2_CFG = UnitreeArticulationCfg(
     spawn=UnitreeUrdfFileCfg(
         asset_path=f"{UNITREE_ROS_DIR}/robots/go2_description/urdf/go2_description.urdf",
     ),

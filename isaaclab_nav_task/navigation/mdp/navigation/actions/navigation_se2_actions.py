@@ -36,7 +36,9 @@ class PerceptiveNavigationSE2Action(ActionTerm):
 
         # prepare joint position actions
         self.low_level_position_action_term: ActionTerm = self.cfg.low_level_position_action.class_type(cfg.low_level_position_action, env)
-        self.low_level_velocity_action_term: ActionTerm = self.cfg.low_level_velocity_action.class_type(cfg.low_level_velocity_action, env)
+        self.low_level_velocity_action_term: ActionTerm | None = None
+        if self.cfg.low_level_velocity_action is not None:
+            self.low_level_velocity_action_term = self.cfg.low_level_velocity_action.class_type(cfg.low_level_velocity_action, env)
 
         # prepare buffers
         self._action_dim = 3  # [vx, vy, omega]
@@ -200,16 +202,20 @@ class PerceptiveNavigationSE2Action(ActionTerm):
             )
 
             # Process actions and bring them in the right order
-            self._low_level_position_actions[:] = actions_phase[:, :self.low_level_position_action_term.action_dim]
-            self._low_level_velocity_actions[:] = actions_phase[:, self.low_level_position_action_term.action_dim:]
+            position_action_dim = self.low_level_position_action_term.action_dim
+            self._low_level_position_actions[:] = actions_phase[:, :position_action_dim]
+            if self.low_level_velocity_action_term is not None:
+                self._low_level_velocity_actions[:] = actions_phase[:, position_action_dim:]
 
             # Process low level actions
             self.low_level_position_action_term.process_actions(self._low_level_position_actions)
-            self.low_level_velocity_action_term.process_actions(self._low_level_velocity_actions)
+            if self.low_level_velocity_action_term is not None:
+                self.low_level_velocity_action_term.process_actions(self._low_level_velocity_actions)
 
         # Apply low level actions
         self.low_level_position_action_term.apply_actions()
-        self.low_level_velocity_action_term.apply_actions()
+        if self.low_level_velocity_action_term is not None:
+            self.low_level_velocity_action_term.apply_actions()
         self._counter += 1
 
     def reset_low_pass_filter(self, env_ids: torch.Tensor):
@@ -229,7 +235,10 @@ class PerceptiveNavigationSE2Action(ActionTerm):
         self._raw_navigation_velocity_actions = torch.zeros(self.num_envs, self._action_dim, device=self.device)
         self._processed_navigation_velocity_actions = torch.zeros((self.num_envs, self._action_dim), device=self.device)
         self._low_level_position_actions = torch.zeros(self.num_envs, self.low_level_position_action_term.action_dim, device=self.device)
-        self._low_level_velocity_actions = torch.zeros(self.num_envs, self.low_level_velocity_action_term.action_dim, device=self.device)
+        low_level_velocity_action_dim = 0
+        if self.low_level_velocity_action_term is not None:
+            low_level_velocity_action_dim = self.low_level_velocity_action_term.action_dim
+        self._low_level_velocity_actions = torch.zeros(self.num_envs, low_level_velocity_action_dim, device=self.device)
         self._prev_low_level_position_actions = torch.zeros_like(self._low_level_position_actions)
         self._prev_low_level_velocity_actions = torch.zeros_like(self._low_level_velocity_actions)
         self._low_level_step_dt = self.cfg.low_level_decimation * self._env.physics_dt
