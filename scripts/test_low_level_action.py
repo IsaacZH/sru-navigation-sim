@@ -44,7 +44,7 @@ parser.add_argument(
 parser.add_argument(
     "--flat_terrain",
     action=argparse.BooleanOptionalAction,
-    default=True,
+    default=False,
     help="Use near-flat generated terrain (keeps height-field metadata required by goal sampling).",
 )
 parser.add_argument(

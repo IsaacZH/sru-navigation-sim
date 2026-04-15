@@ -126,6 +126,24 @@ class Go2NavigationEnvCfg(NavigationEnvCfg):
         self.scene.terrain.terrain_generator.difficulty_range = [0.5, 1.0]
         self.scene.terrain.terrain_generator.curriculum = False
 
+        # Go2-specific terrain mix: keep maze + flat + pits, remove stairs.
+        terrain_gen = self.scene.terrain.terrain_generator
+        if terrain_gen is not None:
+            if "stairs" in terrain_gen.sub_terrains:
+                terrain_gen.sub_terrains.pop("stairs")
+
+            # Disable stair insertion inside maze tiles as well.
+            if "maze" in terrain_gen.sub_terrains and hasattr(terrain_gen.sub_terrains["maze"], "add_stairs_to_maze"):
+                terrain_gen.sub_terrains["maze"].add_stairs_to_maze = False
+
+            # Re-normalize proportions for remaining terrain types.
+            if "maze" in terrain_gen.sub_terrains:
+                terrain_gen.sub_terrains["maze"].proportion = 0.4
+            if "non_maze" in terrain_gen.sub_terrains:
+                terrain_gen.sub_terrains["non_maze"].proportion = 0.3
+            if "pits" in terrain_gen.sub_terrains:
+                terrain_gen.sub_terrains["pits"].proportion = 0.3
+
 
 @configclass
 class Go2NavigationEnvCfg_DEV(Go2NavigationEnvCfg):
