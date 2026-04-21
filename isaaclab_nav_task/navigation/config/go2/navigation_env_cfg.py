@@ -103,6 +103,7 @@ class Go2NavigationEnvCfg(NavigationEnvCfg):
             "go2",
             "policy.pt",
         )
+        self.actions.velocity_command.policy_scaling = [1, 0.4, 1]
 
         self.rewards.joint_acc_l2_joint.params = {
             "asset_cfg": SceneEntityCfg("robot", joint_names=LEG_JOINT_NAMES)
@@ -113,14 +114,14 @@ class Go2NavigationEnvCfg(NavigationEnvCfg):
             "threshold": 1.0,
         }
 
-        # self.events.randomize_low_pass_filter_alpha.params = {
-        #     "alpha_range": (0.1, 0.6),
-        #     "action_term": "velocity_command",
-        #     "per_dimension": True,
-        #     "alpha_range_vx": (0.1, 0.6),
-        #     "alpha_range_vy": (0.1, 0.6),
-        #     "alpha_range_omega": (0.1, 0.6),
-        # }
+        self.events.randomize_low_pass_filter_alpha.params = {
+            "alpha_range": (0.1, 0.6),
+            "action_term": "velocity_command",
+            "per_dimension": True,
+            "alpha_range_vx": (0.1, 0.6),
+            "alpha_range_vy": (0.1, 0.6),
+            "alpha_range_omega": (0.1, 0.6),
+        }
 
         self.scene.terrain.max_init_terrain_level = 10
         self.scene.terrain.terrain_generator.difficulty_range = [0.5, 1.0]

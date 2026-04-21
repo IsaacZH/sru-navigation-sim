@@ -54,6 +54,7 @@ gym.register(
     kwargs={
         "env_cfg_entry_point": navigation_env_cfg.Go2NavigationEnvCfg,
         "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.Go2NavPPORunnerCfg,
+        # "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.Go2NavPPORunnerTBCfg,  # Use TensorBoard logging for PPO
     },
 )
 
