@@ -70,6 +70,17 @@ from isaaclab.envs import ManagerBasedRLEnvCfg
 from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper, export_policy_as_onnx
 
 
+def as_obs_tensor(obs) -> torch.Tensor:
+    """Convert a policy observation payload into a 2D tensor [num_envs, obs_dim]."""
+    if hasattr(obs, "keys") and hasattr(obs, "__getitem__") and not torch.is_tensor(obs):
+        obs = obs["policy"] if "policy" in obs else next(iter(obs.values()))
+    if not torch.is_tensor(obs):
+        obs = torch.as_tensor(obs)
+    if obs.dim() == 1:
+        obs = obs.unsqueeze(0)
+    return obs
+
+
 def find_latest_checkpoint(log_path: str, checkpoint_pattern: str = "model_.*.pt") -> str:
     """Find the latest checkpoint file in the log directory.
 
@@ -254,9 +265,14 @@ def main():
 
     # Obtain policy for inference
     policy = runner.get_inference_policy(device=env.unwrapped.device)
+    policy_reset = runner.get_policy_reset(device=env.unwrapped.device)
 
     # Reset environment
-    obs, _ = env.get_observations()
+    obs_result = env.get_observations()
+    if isinstance(obs_result, tuple):
+        obs_result = obs_result[0]
+    obs = as_obs_tensor(obs_result).to(env.unwrapped.device)
+    policy_reset()
 
     # Simulate environment
     while simulation_app.is_running():
@@ -264,7 +280,11 @@ def main():
         with torch.inference_mode():
             actions = policy(obs)
         # Step environment
-        obs, _, _, _ = env.step(actions)
+        obs_result, _, dones, _ = env.step(actions)
+        obs = as_obs_tensor(obs_result).to(env.unwrapped.device)
+        if torch.any(dones):
+            with torch.inference_mode():
+                policy_reset(dones.to(env.unwrapped.device))
 
     # Close the environment
     env.close()

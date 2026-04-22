@@ -119,7 +119,7 @@ def randomize_action_scale(
     action_term_obj: PerceptiveNavigationSE2Action = env.action_manager._terms[action_term]
 
     action_term_obj._policy_scaling[env_ids] = torch.tensor(
-        action_term_obj.cfg.policy_scaling, device=action_term_obj.device
+        action_term_obj.cfg.policy_scaling, device=action_term_obj.device, dtype=torch.float32
     ).expand(len(env_ids), -1)
 
     random_scales_x = (

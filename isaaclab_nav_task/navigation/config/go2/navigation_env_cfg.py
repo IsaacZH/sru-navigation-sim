@@ -29,10 +29,15 @@ class Go2ObservationsCfg(ObservationsCfg):
     @configclass
     class LowLevelPolicyCfg(ObsGroup):
         """Observations for low-level policy, aligned with Go2 locomotion policy input."""
-
+        velocity_commands = ObsTerm(
+            # In navigation, low-level velocity targets come from processed high-level actions.
+            func=mdp.generated_actions,
+            clip=(-100, 100),
+            params={"action_name": "velocity_command"},
+        )
         base_ang_vel = ObsTerm(
             func=mdp.base_ang_vel,
-            scale=0.2,
+            scale=0.25,
             clip=(-100, 100),
             noise=Unoise(n_min=-0.2, n_max=0.2),
         )
@@ -41,12 +46,7 @@ class Go2ObservationsCfg(ObservationsCfg):
             clip=(-100, 100),
             noise=Unoise(n_min=-0.05, n_max=0.05),
         )
-        velocity_commands = ObsTerm(
-            # In navigation, low-level velocity targets come from processed high-level actions.
-            func=mdp.generated_actions,
-            clip=(-100, 100),
-            params={"action_name": "velocity_command"},
-        )
+
         joint_pos_rel = ObsTerm(
             func=mdp.joint_pos_rel,
             clip=(-100, 100),
@@ -88,22 +88,36 @@ class Go2NavigationEnvCfg(NavigationEnvCfg):
 
         self.scene.robot = GO2_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
-        # Go2 is a legged robot, so low-level control uses position-only output.
-        self.actions.velocity_command.low_level_position_action = mdp.JointPositionActionCfg(
+        # Go2-only: switch to Him-compatible low-level action term.
+        self.actions.velocity_command = mdp.PerceptiveNavigationSE2HimActionCfg(
             asset_name="robot",
-            joint_names=LEG_JOINT_NAMES,
-            scale=0.25,
-            use_default_offset=True,
+            low_level_position_action=mdp.JointPositionActionCfg(
+                asset_name="robot",
+                joint_names=LEG_JOINT_NAMES,
+                scale=0.25,
+                use_default_offset=True,
+            ),
+            low_level_decimation=4,
+            observation_group="low_level_policy",
+            policy_scaling=[2.0, 1.0, 2.0],
+            use_raw_actions=True,
+            policy_distr_type="gaussian",
+            history_length=5,
+            low_level_encoder_onnx_file=os.path.join(
+                ISAACLAB_NAV_TASKS_ASSETS_DIR,
+                "Policies",
+                "locomotion",
+                "go2",
+                "encoder.onnx",
+            ),
+            low_level_actor_onnx_file=os.path.join(
+                ISAACLAB_NAV_TASKS_ASSETS_DIR,
+                "Policies",
+                "locomotion",
+                "go2",
+                "policy.onnx",
+            ),
         )
-        self.actions.velocity_command.low_level_velocity_action = None
-        self.actions.velocity_command.low_level_policy_file = os.path.join(
-            ISAACLAB_NAV_TASKS_ASSETS_DIR,
-            "Policies",
-            "locomotion",
-            "go2",
-            "policy.pt",
-        )
-        self.actions.velocity_command.policy_scaling = [1, 0.4, 1]
 
         self.rewards.joint_acc_l2_joint.params = {
             "asset_cfg": SceneEntityCfg("robot", joint_names=LEG_JOINT_NAMES)
