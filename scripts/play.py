@@ -40,8 +40,14 @@ parser.add_argument("--num_envs", type=int, default=None, help="Number of enviro
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--checkpoint", type=str, default=None, help="Path to model checkpoint.")
 parser.add_argument("--use_last_checkpoint", action="store_true", help="Use last checkpoint from logs.")
-parser.add_argument("--export_jit", action="store_true", default=False, help="Export policy as JIT module.")
-parser.add_argument("--export_onnx", action="store_true", default=False, help="Export policy as ONNX model.")
+parser.add_argument("--export_jit", action="store_true", default=True, help="Export policy as JIT module.")
+parser.add_argument("--export_onnx", action="store_true", default=True, help="Export policy as ONNX model.")
+parser.add_argument(
+    "--visualize_depth",
+    action="store_true",
+    default=False,
+    help="Show depth image window (requires non-headless mode and works with num_envs=1).",
+)
 
 # Append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
@@ -235,6 +241,19 @@ def main():
     # Override config from command line
     if args_cli.num_envs is not None:
         env_cfg.scene.num_envs = args_cli.num_envs
+
+    # Enable depth visualization in observation pipeline.
+    if args_cli.visualize_depth:
+        if hasattr(args_cli, "headless") and args_cli.headless:
+            print("[WARN] --visualize_depth is enabled but --headless is set. No depth window will be shown.")
+        if env_cfg.scene.num_envs != 1:
+            print("[WARN] --visualize_depth currently supports num_envs=1. Overriding num_envs to 1.")
+            env_cfg.scene.num_envs = 1
+
+        try:
+            env_cfg.observations.policy.depth_image.params["visualize"] = True
+        except Exception as exc:
+            print(f"[WARN] Failed to enable policy depth visualization: {exc}")
 
     # Create the environment
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)

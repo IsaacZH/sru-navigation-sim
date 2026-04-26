@@ -71,6 +71,16 @@ ZEDX_CAMERA_CONFIG = CameraConfig(
 )
 """Configuration for ZedX camera (used with b2w and aow_d robots)."""
 
+D435I_CAMERA_CONFIG = CameraConfig(
+    focal_length=391.9765,
+    baseline=0.049974,
+    min_depth=0.25,
+    max_depth=10.0,
+    resolution=(64, 40),
+    depth_encoder_path=_get_encoder_path("vae_pretrain_new.pth"),
+)
+"""Configuration for Intel RealSense D435i camera."""
+
 # Default camera configuration
 DEFAULT_CAMERA_CONFIG = ZEDX_CAMERA_CONFIG
 """Default camera configuration (ZedX camera settings)."""
@@ -79,7 +89,11 @@ DEFAULT_CAMERA_CONFIG = ZEDX_CAMERA_CONFIG
 ROBOT_CAMERA_CONFIGS = {
     "b2w": ZEDX_CAMERA_CONFIG,
     "aow_d": ZEDX_CAMERA_CONFIG,
-    "go2": ZEDX_CAMERA_CONFIG,
+    # "go2": ZEDX_CAMERA_CONFIG,
+    # Uncomment to use D435i:
+    # "b2w": D435I_CAMERA_CONFIG,
+    # "aow_d": D435I_CAMERA_CONFIG,
+    "go2": D435I_CAMERA_CONFIG,
 }
 """Dictionary mapping robot names to their camera configurations."""
 

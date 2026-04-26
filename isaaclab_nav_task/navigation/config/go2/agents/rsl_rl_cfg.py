@@ -78,7 +78,6 @@ class Go2NavPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     max_iterations = 15000
     save_interval = 200
     logger = "wandb"
-    gpu_monitor_interval = 10
     seed = 70
     wandb_project = "isaaclab_nav_go2"
     experiment_name = "go2_navigation_ppo"
@@ -121,7 +120,6 @@ class Go2NavPPORunnerTBCfg(Go2NavPPORunnerCfg):
     def __post_init__(self):
         super().__post_init__()
         self.logger = "tensorboard"
-        self.num_steps_per_env = 16
 
 @configclass
 class Go2NavPPORunnerDevCfg(Go2NavPPORunnerCfg):

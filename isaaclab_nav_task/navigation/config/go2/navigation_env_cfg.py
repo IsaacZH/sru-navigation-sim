@@ -11,6 +11,7 @@ from isaaclab.utils import configclass
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
+from isaaclab.sensors import RayCasterCameraCfg, patterns
 from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
 from isaaclab_nav_task.navigation.navigation_env_cfg import NavigationEnvCfg, ObservationsCfg
@@ -87,6 +88,29 @@ class Go2NavigationEnvCfg(NavigationEnvCfg):
         CAMERA_RESOLUTION = camera_config.resolution
 
         self.scene.robot = GO2_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+
+        # Go2-specific raycast camera setup
+        self.scene.raycast_camera = RayCasterCameraCfg(
+            mesh_prim_paths=["/World/ground"],
+            update_period=0,
+            prim_path="{ENV_REGEX_NS}/Robot/base/front_camera",
+            offset=RayCasterCameraCfg.OffsetCfg(
+                pos=(0.0, 0.0, 0.05), convention="world"  # 20 degrees rot=(0.9848078, 0.0, 0.1736482, 0.0)
+            ),
+            data_types=["distance_to_image_plane"],
+            debug_vis=False,
+            max_distance=11.0,
+            pattern_cfg=patterns.PinholeCameraPatternCfg.from_ros_camera_info(
+                # D435i camera parameters (640x480 native)
+                fx=391.9765,
+                fy=391.9765,
+                cx=320.7953,
+                cy=238.5750,
+                width=640,
+                height=480,
+                downsample_factor=10,  # Downsample from 640x480 to 64x48
+            ),
+        )
 
         # Go2-only: switch to Him-compatible low-level action term.
         self.actions.velocity_command = mdp.PerceptiveNavigationSE2HimActionCfg(

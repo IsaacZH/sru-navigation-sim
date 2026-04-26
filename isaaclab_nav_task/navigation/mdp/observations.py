@@ -45,6 +45,7 @@ JIT_HEIGHTSCAN_FEAT_ENCODER: Optional[torch.jit.ScriptModule] = None
 use_jit = True
 min_depth = 0.0
 max_depth = 0.0
+target_resolution = None  # (W, H) format, set during initialization
 
 
 def _update_depth_window(camera_name: str, depth_tensor: torch.Tensor, height: int, width: int, title: str) -> None:
@@ -102,7 +103,7 @@ def _ensure_depth_noise_generator_initialized(
         use_jit_precompiled: Whether to use JIT compilation for faster inference.
         feature_dim: Feature dimension for the encoder output.
     """
-    global DEPTH_NOISE_GENERATOR, JIT_DEPTH_NOISE_GENERATOR, use_jit, min_depth, max_depth
+    global DEPTH_NOISE_GENERATOR, JIT_DEPTH_NOISE_GENERATOR, use_jit, min_depth, max_depth, target_resolution
 
     # Only initialize if not already done
     if DEPTH_NOISE_GENERATOR is not None:
@@ -115,6 +116,7 @@ def _ensure_depth_noise_generator_initialized(
     min_depth = config.min_depth
     max_depth = config.max_depth
     resolution = config.resolution
+    target_resolution = resolution  # Store target resolution for cropping
 
     print("=" * 80)
     print("Initializing depth noise generator for navigation observation:")
@@ -397,6 +399,13 @@ def depth_image_prefect(env, sensor_cfg):
     H, W = depth_camera.image_shape
     depth_tensor = depth_tensor.view(-1, 1, H, W)
 
+    # Crop to target resolution if necessary (target_resolution is (W, H) format)
+    if target_resolution is not None:
+        target_W, target_H = target_resolution
+        if H > target_H or W > target_W:
+            depth_tensor = depth_tensor[:, :, :target_H, :target_W]
+            H, W = target_H, target_W
+
     assert JIT_DEPTH_NOISE_GENERATOR is not None, (
         "Depth encoder JIT model is not initialized. Call initialize_depth_noise_generator first."
     )
@@ -441,6 +450,13 @@ def depth_image_noisy_delayed(
     # Reshape the tensor to [B, 1, H, W]
     H, W = depth_camera.image_shape
     depth_tensor = depth_tensor.view(-1, 1, H, W)
+
+    # Crop to target resolution if necessary (target_resolution is (W, H) format)
+    if target_resolution is not None:
+        target_W, target_H = target_resolution
+        if H > target_H or W > target_W:
+            depth_tensor = depth_tensor[:, :, :target_H, :target_W]
+            H, W = target_H, target_W
 
     assert JIT_DEPTH_NOISE_GENERATOR is not None, (
         "Depth encoder JIT model is not initialized. Call initialize_depth_noise_generator first."
