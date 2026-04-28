@@ -52,6 +52,17 @@ class PerceptiveNavigationSE2HimAction(ActionTerm):
             (self.num_envs, self._action_dim), self._low_pass_alpha, device=self.device
         )
 
+        # Navigation velocity clipping setup (optional)
+        self._velocity_clip_min = None
+        self._velocity_clip_max = None
+        if self.cfg.velocity_clip_min is not None and self.cfg.velocity_clip_max is not None:
+            self._velocity_clip_min = torch.tensor(
+                self.cfg.velocity_clip_min, device=self.device, dtype=torch.float32
+            )
+            self._velocity_clip_max = torch.tensor(
+                self.cfg.velocity_clip_max, device=self.device, dtype=torch.float32
+            )
+
         if self.cfg.history_length < 0:
             raise ValueError(f"history_length must be >= 0, got {self.cfg.history_length}")
 
@@ -217,6 +228,12 @@ class PerceptiveNavigationSE2HimAction(ActionTerm):
         self._processed_navigation_velocity_actions = self.apply_low_pass_filter(
             self._processed_navigation_velocity_actions
         )
+        if self._velocity_clip_min is not None and self._velocity_clip_max is not None:
+            self._processed_navigation_velocity_actions = torch.clamp(
+                self._processed_navigation_velocity_actions,
+                min=self._velocity_clip_min,
+                max=self._velocity_clip_max,
+            )
 
     @torch.inference_mode()
     def apply_actions(self):

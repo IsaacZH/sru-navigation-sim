@@ -83,15 +83,31 @@ def _configure_env(env_cfg: ManagerBasedRLEnvCfg) -> None:
         env_cfg.viewer.env_index = 0
 
     # Keep generated terrain metadata because navigation goal sampling depends on it.
-    # We approximate a flat setup by collapsing terrain difficulty and grid size.
+    # Match Play-Flat behavior: keep only non_maze terrain and force zero obstacle difficulty.
     if args_cli.flat_terrain and env_cfg.scene.terrain is not None:
         env_cfg.scene.terrain.max_init_terrain_level = 0
         if env_cfg.scene.terrain.terrain_generator is not None:
-            env_cfg.scene.terrain.terrain_generator.curriculum = False
-            env_cfg.scene.terrain.terrain_generator.num_rows = 1
-            env_cfg.scene.terrain.terrain_generator.num_cols = 1
-            if hasattr(env_cfg.scene.terrain.terrain_generator, "difficulty_range"):
-                env_cfg.scene.terrain.terrain_generator.difficulty_range = [0.0, 0.0]
+            terrain_gen = env_cfg.scene.terrain.terrain_generator
+            terrain_gen.curriculum = False
+            terrain_gen.num_rows = 1
+            terrain_gen.num_cols = 1
+
+            # Keep only flat sub-terrain.
+            if hasattr(terrain_gen, "sub_terrains") and terrain_gen.sub_terrains is not None:
+                keys_to_remove = [name for name in terrain_gen.sub_terrains.keys() if name != "non_maze"]
+                for key in keys_to_remove:
+                    terrain_gen.sub_terrains.pop(key)
+
+                if "non_maze" in terrain_gen.sub_terrains:
+                    flat_cfg = terrain_gen.sub_terrains["non_maze"]
+                    flat_cfg.proportion = 1.0
+                    if hasattr(flat_cfg, "randomize_wall"):
+                        flat_cfg.randomize_wall = False
+                    if hasattr(flat_cfg, "random_wall_ratio"):
+                        flat_cfg.random_wall_ratio = 0.0
+
+            if hasattr(terrain_gen, "difficulty_range"):
+                terrain_gen.difficulty_range = [0.0, 0.0]
 
     if args_cli.disable_pushes and hasattr(env_cfg, "events"):
         if hasattr(env_cfg.events, "base_external_force_torque"):

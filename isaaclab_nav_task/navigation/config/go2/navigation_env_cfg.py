@@ -84,9 +84,6 @@ class Go2NavigationEnvCfg(NavigationEnvCfg):
 
         initialize_depth_noise_generator(robot_name="go2", use_jit_precompiled=False)
 
-        camera_config = get_camera_config("go2")
-        CAMERA_RESOLUTION = camera_config.resolution
-
         self.scene.robot = GO2_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
         # Go2-specific raycast camera setup
@@ -123,10 +120,11 @@ class Go2NavigationEnvCfg(NavigationEnvCfg):
             ),
             low_level_decimation=4,
             observation_group="low_level_policy",
-            policy_scaling=[2.0, 1.0, 2.0],
             use_raw_actions=True,
             policy_distr_type="gaussian",
             history_length=5,
+            velocity_clip_min=[-1.0, -1.0, -1.0],
+            velocity_clip_max=[1.0, 1.0, 1.0],
             low_level_encoder_onnx_file=os.path.join(
                 ISAACLAB_NAV_TASKS_ASSETS_DIR,
                 "Policies",
@@ -210,3 +208,31 @@ class Go2NavigationEnvCfg_PLAY(Go2NavigationEnvCfg):
         self.observations.policy.enable_corruption = False
         self.events.base_external_force_torque = None
         self.events.push_robot = None
+
+
+@configclass
+class Go2NavigationEnvCfg_PLAY_FLAT(Go2NavigationEnvCfg_PLAY):
+    """Play configuration with flat-only terrain (non_maze)."""
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        terrain_gen = self.scene.terrain.terrain_generator
+        if terrain_gen is None:
+            return
+
+        # Keep only flat terrain for play.
+        keys_to_remove = [name for name in terrain_gen.sub_terrains.keys() if name != "non_maze"]
+        for key in keys_to_remove:
+            terrain_gen.sub_terrains.pop(key)
+
+        if "non_maze" in terrain_gen.sub_terrains:
+            flat_cfg = terrain_gen.sub_terrains["non_maze"]
+            flat_cfg.proportion = 1.0
+            # Ensure flat terrain does not spawn random walls/obstacles.
+            flat_cfg.randomize_wall = False
+            flat_cfg.random_wall_ratio = 0.0
+
+        # In maze_terrain(), obstacle density scales with difficulty,
+        # so forcing zero difficulty yields pure flat ground.
+        terrain_gen.difficulty_range = [0.0, 0.0]

@@ -61,3 +61,9 @@ class PerceptiveNavigationSE2HimActionCfg(ActionTermCfg):
 
     low_level_actor_onnx_file: str | None = None
     """Path to low-level actor/policy ONNX file."""
+
+    velocity_clip_min: list[float] = None
+    """Minimum clipping bounds for [vx, vy, omega]."""
+
+    velocity_clip_max: list[float] = None
+    """Maximum clipping bounds for [vx, vy, omega]."""

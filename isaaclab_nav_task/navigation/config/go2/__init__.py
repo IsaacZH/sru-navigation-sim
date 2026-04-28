@@ -69,6 +69,16 @@ gym.register(
 )
 
 gym.register(
+    id="Isaac-Nav-PPO-Go2-Play-Flat-v0",
+    entry_point="isaaclab_nav_task.navigation:NavigationEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": navigation_env_cfg.Go2NavigationEnvCfg_PLAY_FLAT,
+        "rsl_rl_cfg_entry_point": agents.rsl_rl_cfg.Go2NavPPORunnerCfg,
+    },
+)
+
+gym.register(
     id="Isaac-Nav-PPO-Go2-Dev-v0",
     entry_point="isaaclab_nav_task.navigation:NavigationEnv",
     disable_env_checker=True,
