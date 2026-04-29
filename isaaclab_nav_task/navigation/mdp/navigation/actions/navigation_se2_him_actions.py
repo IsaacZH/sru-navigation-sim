@@ -45,13 +45,6 @@ class PerceptiveNavigationSE2HimAction(ActionTerm):
         self._action_dim = 3
         self._init_buffers()
 
-        self._prev_filtered_velocity_commands = torch.zeros((self.num_envs, self._action_dim), device=self.device)
-        self._low_pass_alpha = self.cfg.low_pass_filter_alpha
-        self._enable_low_pass_filter = self.cfg.enable_low_pass_filter
-        self._per_env_per_dim_low_pass_alpha = torch.full(
-            (self.num_envs, self._action_dim), self._low_pass_alpha, device=self.device
-        )
-
         # Navigation velocity clipping setup (optional)
         self._velocity_clip_min = None
         self._velocity_clip_max = None
@@ -188,28 +181,11 @@ class PerceptiveNavigationSE2HimAction(ActionTerm):
 
         return self._low_level_obs_history
 
-    def apply_low_pass_filter(self, velocity_commands: torch.Tensor) -> torch.Tensor:
-        """Apply low-pass filter to velocity commands for smoother locomotion."""
-        if not self._enable_low_pass_filter:
-            return velocity_commands
-
-        alpha_values = self._per_env_per_dim_low_pass_alpha
-        filtered_commands = (
-            alpha_values * self._prev_filtered_velocity_commands
-            + (1.0 - alpha_values) * velocity_commands
-        )
-        self._prev_filtered_velocity_commands.copy_(filtered_commands)
-        return filtered_commands
-
     def process_actions(self, actions: torch.Tensor):
         """Process navigation actions for logging and low-level policy observations."""
         self._raw_navigation_velocity_actions[:] = actions
-        if not self.cfg.use_raw_actions:
-            self._processed_navigation_velocity_actions = (
-                self._raw_navigation_velocity_actions * self._scale + self._offset
-            )
-        else:
-            self._processed_navigation_velocity_actions[:] = self._raw_navigation_velocity_actions
+
+        self._processed_navigation_velocity_actions[:] = self._raw_navigation_velocity_actions
 
         if self.cfg.policy_distr_type == "gaussian":
             self._processed_navigation_velocity_actions = torch.tanh(self._processed_navigation_velocity_actions)
@@ -218,16 +194,8 @@ class PerceptiveNavigationSE2HimAction(ActionTerm):
         else:
             raise ValueError(f"Unknown policy distribution type: {self.cfg.policy_distr_type}")
 
-        observations = self._env.observation_manager.compute_group(group_name=self.cfg.observation_group)
-        base_lin_vel = observations[:, 0:3]
-        vel_xyz = base_lin_vel.norm(dim=1, keepdim=True)
+        self._processed_navigation_velocity_actions = self._processed_navigation_velocity_actions 
 
-        self._processed_navigation_velocity_actions = (
-            self._processed_navigation_velocity_actions + vel_xyz * self._policy_bias
-        ) * self._policy_scaling
-        self._processed_navigation_velocity_actions = self.apply_low_pass_filter(
-            self._processed_navigation_velocity_actions
-        )
         if self._velocity_clip_min is not None and self._velocity_clip_max is not None:
             self._processed_navigation_velocity_actions = torch.clamp(
                 self._processed_navigation_velocity_actions,
@@ -276,14 +244,6 @@ class PerceptiveNavigationSE2HimAction(ActionTerm):
         return self._processed_navigation_velocity_actions
 
     @property
-    def filtered_velocity_commands(self) -> torch.Tensor:
-        return self._prev_filtered_velocity_commands
-
-    @property
-    def low_pass_alpha_values(self) -> torch.Tensor:
-        return self._per_env_per_dim_low_pass_alpha
-
-    @property
     def low_level_actions(self) -> torch.Tensor:
         return self._low_level_position_actions
 
@@ -306,9 +266,3 @@ class PerceptiveNavigationSE2HimAction(ActionTerm):
         self._prev_low_level_position_actions = torch.zeros_like(self._low_level_position_actions)
         self._low_level_step_dt = self.cfg.low_level_decimation * self._env.physics_dt
         self._counter = 0
-        self._scale = torch.tensor(self.cfg.scale, device=self.device, dtype=torch.float32)
-        self._offset = torch.tensor(self.cfg.offset, device=self.device, dtype=torch.float32)
-        self._policy_scaling = torch.tensor(self.cfg.policy_scaling, device=self.device, dtype=torch.float32).repeat(
-            self.num_envs, 1
-        )
-        self._policy_bias = torch.zeros(self.num_envs, self._action_dim, device=self.device, dtype=torch.float32)

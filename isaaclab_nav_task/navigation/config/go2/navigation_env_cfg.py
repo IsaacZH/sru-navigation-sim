@@ -120,7 +120,6 @@ class Go2NavigationEnvCfg(NavigationEnvCfg):
             ),
             low_level_decimation=4,
             observation_group="low_level_policy",
-            use_raw_actions=True,
             policy_distr_type="gaussian",
             history_length=5,
             velocity_clip_min=[-1.0, -1.0, -1.0],
@@ -130,6 +129,7 @@ class Go2NavigationEnvCfg(NavigationEnvCfg):
                 "Policies",
                 "locomotion",
                 "go2",
+                "2026-04-25_16-09-15",
                 "encoder.onnx",
             ),
             low_level_actor_onnx_file=os.path.join(
@@ -137,6 +137,7 @@ class Go2NavigationEnvCfg(NavigationEnvCfg):
                 "Policies",
                 "locomotion",
                 "go2",
+                "2026-04-25_16-09-15",
                 "policy.onnx",
             ),
         )
@@ -150,14 +151,8 @@ class Go2NavigationEnvCfg(NavigationEnvCfg):
             "threshold": 1.0,
         }
 
-        self.events.randomize_low_pass_filter_alpha.params = {
-            "alpha_range": (0.1, 0.6),
-            "action_term": "velocity_command",
-            "per_dimension": True,
-            "alpha_range_vx": (0.1, 0.6),
-            "alpha_range_vy": (0.1, 0.6),
-            "alpha_range_omega": (0.1, 0.6),
-        }
+        self.events.randomize_low_pass_filter_alpha = None
+        self.events.randomize_action_scale = None
 
         self.scene.terrain.max_init_terrain_level = 10
         self.scene.terrain.terrain_generator.difficulty_range = [0.5, 1.0]

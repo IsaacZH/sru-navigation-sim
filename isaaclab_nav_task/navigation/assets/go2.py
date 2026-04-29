@@ -18,8 +18,8 @@ from isaaclab.utils import configclass
 
 # from himloco_lab.assets import unitree_actuators
 
-UNITREE_ROS_DIR = "/home/isaac/unitree_ros"
-UNITREE_MODEL_DIR = "/home/isaac/sru-navigation-sim/isaaclab_nav_task/navigation/assets/data/Robots"
+UNITREE_ROS_DIR = "/home/mike/unitree_ros"
+UNITREE_MODEL_DIR = "/home/mike/sru-navigation-sim/isaaclab_nav_task/navigation/assets/data/Robots"
 
 @configclass
 class UnitreeArticulationCfg(ArticulationCfg):
